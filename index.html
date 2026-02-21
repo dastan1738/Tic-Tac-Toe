@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Крестики-нолики Online</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#0f1b33; --text:#eaf0ff; --muted:#9fb1d6;
+      --line:#243a66; --accent:#7aa7ff; --good:#7dffb2; --bad:#ff7d9b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:flex; justify-content:center; align-items:center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 10%, #142750 0%, rgba(20,39,80,0) 60%),
+                  radial-gradient(900px 600px at 90% 20%, #1b2f67 0%, rgba(27,47,103,0) 55%),
+                  var(--bg);
+      color:var(--text);
+      padding:20px;
+    }
+    .app{
+      width:min(560px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:22px;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.45);
+      padding:18px;
+      backdrop-filter: blur(10px);
+    }
+    header{display:flex; gap:12px; justify-content:space-between; align-items:flex-start; margin-bottom:14px;}
+    h1{font-size:18px; margin:0;}
+    .sub{margin-top:6px; color:var(--muted); font-size:13px; line-height:1.25;}
+    .pill{
+      display:flex; gap:8px; align-items:center; padding:10px 12px;
+      background: rgba(15,27,51,0.70);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px;
+      min-width: 200px;
+      justify-content:space-between;
+    }
+    .turn{font-weight:800; color:var(--accent);}
+    .online{
+      display:grid; gap:10px; margin-bottom:12px;
+      padding:12px; border-radius:18px;
+      background: rgba(15,27,51,0.65);
+      border:1px solid rgba(255,255,255,0.10);
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    input{
+      flex: 1 1 160px;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      color:var(--text);
+      outline:none;
+      font-weight:700;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+    }
+    button{
+      border:0; padding:12px 14px; border-radius:14px; cursor:pointer; color:var(--text);
+      font-weight:800;
+      background: rgba(122,167,255,0.18);
+      border:1px solid rgba(122,167,255,0.30);
+      transition: transform .12s ease, background .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:hover{background: rgba(122,167,255,0.24);}
+    button:active{transform: scale(0.98);}
+    .danger{background: rgba(255,125,155,0.14); border-color: rgba(255,125,155,0.28);}
+    .danger:hover{background: rgba(255,125,155,0.20);}
+    .board{
+      display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+      padding:10px;
+      background: rgba(15,27,51,0.65);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:18px;
+    }
+    .cell{
+      aspect-ratio:1/1; width:100%;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: radial-gradient(120px 120px at 30% 30%, rgba(122,167,255,0.18), rgba(0,0,0,0));
+      display:flex; align-items:center; justify-content:center;
+      font-size: clamp(40px, 8vw, 64px);
+      font-weight:900;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .2s ease;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cell:hover{transform: translateY(-1px); border-color: rgba(122,167,255,0.35);}
+    .cell:active{transform: translateY(0px) scale(0.99);}
+    .cell[disabled]{cursor:not-allowed; opacity:0.85;}
+    .cell.x{color:#a7c5ff;}
+    .cell.o{color:#9fffd3;}
+    .status{
+      margin-top:12px;
+      padding:12px 14px;
+      background: rgba(15,27,51,0.60);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:16px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+    .status b{color:var(--text);}
+    .tiny{font-size:12px; color:rgba(234,240,255,0.55); margin-top:6px;}
+    .ok{color:var(--good); font-weight:800;}
+    .bad{color:var(--bad); font-weight:800;}
+    code{background:rgba(0,0,0,0.25); padding:2px 6px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Крестики-нолики — Online</h1>
+        <div class="sub">Создай комнату, отправь код другу — играйте вдвоём.</div>
+      </div>
+      <div class="pill">
+        <div style="color:var(--muted); font-size:12px;">Ты / Ход</div>
+        <div>
+          <span id="you" class="turn">—</span>
+          <span style="color:var(--muted)"> / </span>
+          <span id="turn" class="turn">—</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="online">
+      <div class="row">
+        <button id="btnConnect">Подключиться</button>
+        <div id="conn" class="tiny">Статус: <span id="connState" class="bad">не подключено</span></div>
+      </div>
+
+      <div class="row">
+        <button id="btnCreate">Создать комнату</button>
+        <input id="roomInput" maxlength="8" placeholder="КОД КОМНАТЫ" />
+        <button id="btnJoin">Войти</button>
+      </div>
+
+      <div class="tiny">
+        Сервер: <code id="serverShown"></code>
+        <span id="roomShown"></span>
+      </div>
+
+      <div class="row">
+        <button id="btnRestart" class="danger">Перезапуск игры</button>
+      </div>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div class="status" id="status">
+      1) Подключись к серверу<br>
+      2) Создай комнату или введи код и войди
+    </div>
+  </div>
+
+<script>
+  // ВАЖНО: сюда вставь адрес твоего WebSocket сервера:
+  // - локально: ws://192.168.0.10:8080  (IP компьютера где server.js)
+  // - на хостинге: wss://your-domain
+  const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.hostname + ":8080";
+
+  const serverShown = document.getElementById("serverShown");
+  serverShown.textContent = WS_URL;
+
+  const btnConnect = document.getElementById("btnConnect");
+  const btnCreate  = document.getElementById("btnCreate");
+  const btnJoin    = document.getElementById("btnJoin");
+  const btnRestart = document.getElementById("btnRestart");
+
+  const connState  = document.getElementById("connState");
+  const roomInput  = document.getElementById("roomInput");
+  const roomShown  = document.getElementById("roomShown");
+
+  const youEl   = document.getElementById("you");
+  const turnEl  = document.getElementById("turn");
+  const statusEl= document.getElementById("status");
+  const boardEl = document.getElementById("board");
+
+  let ws = null;
+  let roomCode = "";
+  let you = "";
+  let board = Array(9).fill("");
+  let turn = "";
+  let gameOver = false;
+
+  function setStatus(html){ statusEl.innerHTML = html; }
+  function setConn(ok, text){
+    connState.textContent = text;
+    connState.className = ok ? "ok" : "bad";
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML = "";
+    for(let i=0;i<9;i++){
+      const b = document.createElement("button");
+      b.className = "cell";
+      b.type = "button";
+      b.textContent = board[i];
+
+      if(board[i] === "X") b.classList.add("x");
+      if(board[i] === "O") b.classList.add("o");
+
+      const myTurn = (you && turn === you);
+      const canClick = !gameOver && board[i] === "" && myTurn && roomCode;
+      b.disabled = !canClick;
+
+      b.addEventListener("click", () => sendMove(i));
+      boardEl.appendChild(b);
+    }
+    youEl.textContent = you || "—";
+    turnEl.textContent = turn || "—";
+    roomShown.textContent = roomCode ? (" | Комната: " + roomCode) : "";
+  }
+
+  function send(obj){
+    if(!ws || ws.readyState !== 1) {
+      setStatus("Нет соединения с сервером. Нажми <b>Подключиться</b>.");
+      return;
+    }
+    ws.send(JSON.stringify(obj));
+  }
+
+  function connect(){
+    if(ws && (ws.readyState === 0 || ws.readyState === 1)) return;
+
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      setConn(true, "подключено");
+      setStatus("Подключено ✅ Теперь <b>создай комнату</b> или <b>введи код</b> и войди.");
+    };
+
+    ws.onclose = () => {
+      setConn(false, "отключено");
+      setStatus("Соединение потеряно. Нажми <b>Подключиться</b> снова.");
+      // не сбрасываем данные полностью — чтобы можно было быстро переподключиться
+    };
+
+    ws.onerror = () => {
+      setConn(false, "ошибка");
+      setStatus("Ошибка соединения. Проверь адрес сервера и порт.");
+    };
+
+    ws.onmessage = (e) => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+
+      if(msg.type === "hello"){
+        // просто инфо
+        return;
+      }
+
+      if(msg.type === "error"){
+        setStatus(`<span class="bad">Ошибка:</span> ${escapeHtml(msg.message)}`);
+        return;
+      }
+
+      if(msg.type === "info"){
+        setStatus(`${escapeHtml(msg.message)}<div class="tiny">Ты: <b>${you || "—"}</b>, ход: <b>${turn || "—"}</b></div>`);
+        return;
+      }
+
+      if(msg.type === "joined"){
+        roomCode = msg.roomCode;
+        you = msg.you;
+        setStatus(`Ты в комнате <b>${roomCode}</b>. Твой символ: <b>${you}</b>.<br>Жди второго игрока или начинай игру.`);
+        renderBoard();
+        return;
+      }
+
+      if(msg.type === "state"){
+        board = msg.board || board;
+        turn = msg.turn || turn;
+        gameOver = !!msg.gameOver;
+
+        const players = msg.playersCount ?? 0;
+
+        if(!roomCode){
+          // бывает, если обновление прилетело раньше joined
+        }
+
+        if(players < 2){
+          setStatus(`Комната: <b>${roomCode || "—"}</b>. Ожидание второго игрока…<div class="tiny">Поделись кодом комнаты.</div>`);
+        } else {
+          const myTurn = (you && turn === you);
+          if(gameOver){
+            // текст ниже придёт в gameover, но на всякий случай
+            setStatus(`Игра завершена. Нажми <b>Перезапуск</b>, чтобы сыграть снова.`);
+          } else {
+            setStatus(`Комната: <b>${roomCode}</b>. Ты: <b>${you}</b>.<br>` +
+                      (myTurn ? `Сейчас <b>твой ход</b> ✅` : `Сейчас ходит <b>${turn}</b>…`));
+          }
+        }
+        renderBoard();
+        return;
+      }
+
+      if(msg.type === "gameover"){
+        gameOver = true;
+        if(msg.winner === "D"){
+          setStatus(`Ничья 🤝 Нажми <b>Перезапуск игры</b>`);
+        } else {
+          setStatus(`Победил <b>${msg.winner}</b> ✅ Нажми <b>Перезапуск игры</b>`);
+        }
+        renderBoard();
+        return;
+      }
+    };
+  }
+
+  function createRoom(){
+    send({ type:"create" });
+  }
+
+  function joinRoom(){
+    const code = roomInput.value.toUpperCase().trim();
+    if(!code){
+      setStatus("Введи код комнаты.");
+      return;
+    }
+    send({ type:"join", roomCode: code });
+  }
+
+  function sendMove(i){
+    if(!roomCode) return;
+    send({ type:"move", roomCode, index:i });
+  }
+
+  function restartGame(){
+    if(!roomCode) return;
+    send({ type:"restart", roomCode });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    })[m]);
+  }
+
+  btnConnect.addEventListener("click", connect);
+  btnCreate.addEventListener("click", () => { connect(); createRoom(); });
+  btnJoin.addEventListener("click", () => { connect(); joinRoom(); });
+  btnRestart.addEventListener("click", restartGame);
+
+  // поле рисуем сразу (пустое)
+  renderBoard();
+</script>
+</body>
+</html>
